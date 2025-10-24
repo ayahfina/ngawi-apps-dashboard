@@ -1,117 +1,111 @@
-# Project Requirements Document: codeguide-starter
+# ngawi-apps-dashboard: Project Requirements Document
+
+## 1. Project Overview  
+The Ngawi Government Application Management System is a secure, full-stack web dashboard built to centralize and streamline how the Ngawi Regency government tracks, organizes, and maintains all its software applications. It provides authorized staff with a single place to view summary statistics—such as total registered applications, active vs. inactive counts, and the number of departments (`perangkat_daerah`) with at least one application—while offering fast, intuitive CRUD (Create, Read, Update, Delete) operations on the underlying data.
+
+This system is being built to replace disconnected spreadsheets and ad-hoc records, ensuring data integrity and real-time visibility into the application portfolio. Key objectives include:  
+- Secure authentication for government employees.  
+- A responsive, accessible interface with dark-mode support.  
+- Type-safe database interactions with PostgreSQL and Drizzle ORM.  
+- Well-defined API endpoints for potential integrations.  
+Success will be measured by user adoption within the first month, accurate real-time reporting, and zero critical security incidents.
+
+## 2. In-Scope vs. Out-of-Scope  
+**In-Scope (Version 1)**  
+- User signup, sign-in, and session management via Better Auth.  
+- Main dashboard page showing summary cards: total apps, active vs. inactive counts, number of agencies.  
+- Full CRUD UI and server logic for:  
+  • `aplikasi` (applications)  
+  • `perangkat_daerah` (government departments)  
+  • `vendor` (vendors)  
+  • `pic` (persons in charge)  
+  • `bahasa_pemrograman` (programming languages)  
+  • `framework` (software frameworks)  
+- Custom “Combobox with Create” component to select or add related entities inline.  
+- Server-side routes (Next.js App Router) and API routes (`/api/...`) exposing GET, POST, PUT/PATCH, DELETE for each entity.  
+- Database schema definitions and migrations via Drizzle ORM for PostgreSQL.  
+- Responsive UI built with shadcn/ui components and Tailwind CSS.  
+
+**Out-of-Scope (Planned for Later Phases)**  
+- Role-Based Access Control beyond basic authenticated vs. unauthenticated.  
+- Advanced table features like server-side pagination, dynamic filtering, and sorting.  
+- Mobile-specific app or offline mode.  
+- Third-party integrations (e.g., external analytics, payment gateways).  
+- Formal API documentation (Swagger/OpenAPI)—to be added later.  
+
+## 3. User Flow  
+When an authorized staff member visits the system, they land on the sign-in page powered by Better Auth. After authenticating, they are redirected to the Dashboard. Here, the Server Component loads summary metrics (e.g., total apps, active/inactive split, number of departments) via Drizzle ORM queries. A left-hand navigation bar links to each entity’s management page (Applications, Departments, Vendors, etc.).
+
+If the user clicks “Applications,” they see a Client Component with a data table of all records. They can click “Add New” to open a full-page form. That form uses our custom Combobox with Create control: for example, picking a department from a dropdown or clicking “+ Add Department” to open a modal, fill it out, and seamlessly add it to the main form without losing state. On form submission, a Server Action or API call validates and persists data to PostgreSQL through Drizzle, then redirects back to the table with feedback (success or validation errors).
+
+## 4. Core Features  
+- **Authentication & Authorization**:  
+  • Signup, signin, signout, session management via Better Auth.  
+- **Dashboard Summary**:  
+  • Server Component fetching aggregate counts (total apps, statuses, agencies).  
+- **CRUD Management Pages**:  
+  • Applications, Departments, Vendors, PICs, Languages, Frameworks.  
+- **Inline Entity Creation**:  
+  • Reusable Combobox + Modal component to select or add related entities in one flow.  
+- **API Endpoints**:  
+  • RESTful routes for external GET/POST/PUT/DELETE. Consistent JSON response format.  
+- **Responsive UI**:  
+  • shadcn/ui components (Tables, Forms, Dialogs, Cards), styled with Tailwind CSS and dark-mode support.  
+- **Database Schema & ORM**:  
+  • Drizzle ORM schemas and migrations for PostgreSQL tables per provided DDL.  
+- **Server Actions & Lib Functions**:  
+  • encapsulated database operations for all CRUD tasks.  
+
+## 5. Tech Stack & Tools  
+- Frontend Framework: Next.js (App Router)  
+- Language: TypeScript  
+- Authentication: Better Auth  
+- ORM: Drizzle ORM (Type-safe Postgres)  
+- Database: PostgreSQL  
+- UI Library: shadcn/ui (prebuilt React components)  
+- Styling: Tailwind CSS  
+- Routing: File-based Next.js App Router  
+- Build Tool/Runtime: Node.js  
+- IDE Integrations (optional): VSCode with Drizzle and Tailwind CSS IntelliSense plugins
+
+## 6. Non-Functional Requirements  
+- **Performance**:  
+  • Initial dashboard server component load < 1s.  
+  • API responses < 200ms under normal load.  
+- **Security**:  
+  • HTTPS enforcement, secure JWT or session cookies.  
+  • Input validation and sanitization to prevent SQL injection.  
+- **Compliance & Accessibility**:  
+  • WCAG AA standards for contrast and keyboard navigation.  
+  • Dark mode toggle for accessibility.  
+- **Usability**:  
+  • Form validation with clear error messages.  
+  • Consistent feedback (toasts or inline alerts) on success/failure.  
+- **Reliability**:  
+  • 99.9% uptime.  
+  • Automated backups of PostgreSQL database nightly.  
+
+## 7. Constraints & Assumptions  
+- **Constraints**:  
+  • PostgreSQL must be available and network-accessible.  
+  • Better Auth service uptime and API limits.  
+  • Must deploy on Node.js-compatible hosting.  
+- **Assumptions**:  
+  • Users have modern browsers (Chrome, Edge, Firefox, Safari).  
+  • Internet connection is stable (no offline mode).  
+  • Data volume is moderate (<10k records per table initially).  
+
+## 8. Known Issues & Potential Pitfalls  
+- **Database Migrations**:  
+  • Drizzle ORM’s migration tool requires careful versioning. Mitigation: establish a clear migration naming convention and test migrations on a staging database.  
+- **Custom Combobox Complexity**:  
+  • Maintaining form state across modal dialogs can cause bugs. Mitigation: use React Hook Form or a similar library to manage field state and resets.  
+- **API Rate Limits**:  
+  • Better Auth or other services may throttle requests. Mitigation: implement exponential backoff and caching for repetitive calls.  
+- **Concurrency & Relations**:  
+  • Deleting a department (`perangkat_daerah`) with linked applications can violate FK constraints. Mitigation: enforce soft deletes or cascade rules, and warn users before destructive actions.  
+- **UI Consistency**:  
+  • Mixing Server and Client Components can lead to hydration mismatches. Mitigation: strictly separate concerns—use Server Components only for data fetching and Client Components for interactive pieces.
 
 ---
-
-## 1. Project Overview
-
-The **codeguide-starter** project is a boilerplate web application that provides a ready-made foundation for any web project requiring secure user authentication and a post-login dashboard. It sets up the common building blocks—sign-up and sign-in pages, API routes to handle registration and login, and a simple dashboard interface driven by static data. By delivering this skeleton, it accelerates development time and ensures best practices are in place from day one.
-
-This starter kit is being built to solve the friction developers face when setting up repeated common tasks: credential handling, session management, page routing, and theming. Key objectives include: 1) delivering a fully working authentication flow (registration & login), 2) providing a gated dashboard area upon successful login, 3) establishing a clear, maintainable project structure using Next.js and TypeScript, and 4) demonstrating a clean theming approach with global and section-specific CSS. Success is measured by having an end-to-end login journey in under 200 lines of code and zero runtime type errors.
-
----
-
-## 2. In-Scope vs. Out-of-Scope
-
-### In-Scope (Version 1)
-- User registration (sign-up) form with validation
-- User login (sign-in) form with validation
-- Next.js API routes under `/api/auth/route.ts` handling:
-  - Credential validation
-  - Password hashing (e.g., bcrypt)
-  - Session creation or JWT issuance
-- Protected dashboard pages under `/dashboard`:
-  - `layout.tsx` wrapping dashboard content
-  - `page.tsx` rendering static data from `data.json`
-- Global application layout in `/app/layout.tsx`
-- Basic styling via `globals.css` and `dashboard/theme.css`
-- TypeScript strict mode enabled
-
-### Out-of-Scope (Later Phases)
-- Integration with a real database (PostgreSQL, MongoDB, etc.)
-- Advanced authentication flows (password reset, email verification, MFA)
-- Role-based access control (RBAC)
-- Multi-tenant or white-label theming
-- Unit, integration, or end-to-end testing suites
-- CI/CD pipeline and production deployment scripts
-
----
-
-## 3. User Flow
-
-A new visitor lands on the root URL and sees a welcome page with options to **Sign Up** or **Sign In**. If they choose Sign Up, they fill in their email, password, and hit “Create Account.” The form submits to `/api/auth/route.ts`, which hashes the password, creates a new user session or token, and redirects them to the dashboard. If any input is invalid, an inline error message explains the issue (e.g., “Password too short”).
-
-Once authenticated, the user is taken to the `/dashboard` route. Here they see a sidebar or header defined by `dashboard/layout.tsx`, and the main panel pulls in static data from `data.json`. They can log out (if that control is present), but otherwise their entire session is managed by server-side cookies or tokens. Returning users go directly to Sign In, submit credentials, and upon success they land back on `/dashboard`. Any unauthorized access to `/dashboard` redirects back to Sign In.
-
----
-
-## 4. Core Features
-
-- **Sign-Up Page (`/app/sign-up/page.tsx`)**: Form fields for email & password, client-side validation, POST to `/api/auth`.
-- **Sign-In Page (`/app/sign-in/page.tsx`)**: Form fields for email & password, client-side validation, POST to `/api/auth`.
-- **Authentication API (`/app/api/auth/route.ts`)**: Handles both registration and login based on HTTP method, integrates password hashing (bcrypt) and session or JWT logic.
-- **Global Layout (`/app/layout.tsx` + `globals.css`)**: Shared header, footer, and CSS resets across all pages.
-- **Dashboard Layout (`/app/dashboard/layout.tsx` + `dashboard/theme.css`)**: Sidebar or top nav for authenticated flows, section-specific styling.
-- **Dashboard Page (`/app/dashboard/page.tsx`)**: Reads `data.json`, renders it as cards or tables.
-- **Static Data Source (`/app/dashboard/data.json`)**: Example dataset to demo dynamic rendering.
-- **TypeScript Configuration**: `tsconfig.json` with strict mode and path aliases (if any).
-
----
-
-## 5. Tech Stack & Tools
-
-- **Framework**: Next.js (App Router) for file-based routing, SSR/SSG, and API routes.
-- **Language**: TypeScript for type safety.
-- **UI Library**: React 18 for component-based UI.
-- **Styling**: Plain CSS via `globals.css` (global reset) and `theme.css` (sectional styling). Can easily migrate to CSS Modules or Tailwind in the future.
-- **Backend**: Node.js runtime provided by Next.js API routes.
-- **Password Hashing**: bcrypt (npm package).
-- **Session/JWT**: NextAuth.js or custom JWT logic (to be decided in implementation).
-- **IDE & Dev Tools**: VS Code with ESLint, Prettier extensions. Optionally, Cursor.ai for AI-assisted coding.
-
----
-
-## 6. Non-Functional Requirements
-
-- **Performance**: Initial page load under 200 ms on a standard broadband connection. API responses under 300 ms.
-- **Security**:
-  - HTTPS only in production.
-  - Proper CORS, CSRF protection for API routes.
-  - Secure password storage (bcrypt with salt).
-  - No credentials or secrets checked into version control.
-- **Scalability**: Structure must support adding database integration, caching layers, and advanced auth flows without rewiring core app.
-- **Usability**: Forms should give real-time feedback on invalid input. Layout must be responsive (mobile > 320 px).
-- **Maintainability**: Code must adhere to TypeScript strict mode. Linting & formatting enforced by ESLint/Prettier.
-
----
-
-## 7. Constraints & Assumptions
-
-- **No Database**: Dashboard uses only `data.json`; real database integration is deferred.
-- **Node Version**: Requires Node.js >= 14.
-- **Next.js Version**: Built on Next.js 13+ App Router.
-- **Authentication**: Assumes availability of bcrypt or NextAuth.js at implementation time.
-- **Hosting**: Targets serverless or Node.js-capable hosting (e.g., Vercel, Netlify).
-- **Browser Support**: Modern evergreen browsers; no IE11 support required.
-
----
-
-## 8. Known Issues & Potential Pitfalls
-
-- **Static Data Limitation**: `data.json` is only for demo. A real API or database will be needed to avoid stale data.
-  *Mitigation*: Define a clear interface for data fetching so swapping to a live endpoint is trivial.
-
-- **Global CSS Conflicts**: Using global styles can lead to unintended overrides.
-  *Mitigation*: Plan to migrate to CSS Modules or utility-first CSS in Phase 2.
-
-- **API Route Ambiguity**: Single `/api/auth/route.ts` handling both sign-up and sign-in could get complex.
-  *Mitigation*: Clearly branch on HTTP method (`POST /register` vs. `POST /login`) or split into separate files.
-
-- **Lack of Testing**: No test suite means regressions can slip in.
-  *Mitigation*: Build a minimal Jest + React Testing Library setup in an early iteration.
-
-- **Error Handling Gaps**: Client and server must handle edge cases (network failures, malformed input).
-  *Mitigation*: Define a standard error response schema and show user-friendly messages.
-
----
-
-This PRD should serve as the single source of truth for the AI model or any developer generating the next set of technical documents: Tech Stack Doc, Frontend Guidelines, Backend Structure, App Flow, File Structure, and IDE Rules. It contains all functional and non-functional requirements with no ambiguity, enabling seamless downstream development.
+This PRD provides an unambiguous roadmap for building the Ngawi Government Application Management System. Subsequent documents—such as detailed Tech Stack specifications, Frontend Guidelines, Backend Architecture, and App Flow diagrams—can be generated directly from this foundation without further clarification.
