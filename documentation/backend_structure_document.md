@@ -1,179 +1,203 @@
-# Backend Structure Document
-
-This document outlines the backend architecture, hosting, and infrastructure for the **codeguide-starter** project. It uses plain language so anyone can understand how the backend is set up and how it supports the application.
+# Backend Structure Document for Ngawi-Apps-Dashboard
 
 ## 1. Backend Architecture
 
-- **Framework and Design Pattern**
-  - We use **Next.js API Routes** to handle all server-side logic. These routes live alongside the frontend code in the same repository, making development and deployment simpler.
-  - The backend follows a **layered pattern**:
-    1. **API Layer**: Receives requests (login, registration, data fetch).  
-    2. **Service Layer**: Contains the core business logic (user validation, password hashing).  
-    3. **Data Access Layer**: Talks to the database via a simple ORM (e.g., Prisma or TypeORM).
+The backend of ngawi-apps-dashboard follows a modular, modern web architecture designed for clarity, scalability, and maintainability.
 
-- **Scalability**
-  - Stateless API routes can scale horizontally—new instances can spin up on demand.  
-  - We can add caching or a message queue (e.g., Redis or RabbitMQ) without changing the core code.
-
-- **Maintainability**
-  - Code for each feature is grouped by route (authentication, dashboard).  
-  - A service layer separates complex logic from request handling.
-
-- **Performance**
-  - Lightweight Node.js handlers keep response times low.  
-  - Future use of database connection pooling and Redis for caching repeated queries.
+- **Framework & Language**
+  - Next.js (App Router) for server-side rendering, file-based routing, and API routes
+  - TypeScript for end-to-end type safety and fewer runtime errors
+- **Design Patterns**
+  - _Separation of Concerns_: UI components, server logic, and database definitions live in `/components`, `/app/api` (and `/lib`), and `/db/schema` respectively
+  - _Server Components vs. Client Components_: Dashboard summary and data fetch happen in Server Components, while interactive tables and forms are implemented as Client Components
+  - _File-Based Routing_: Each feature (e.g., aplikasi, vendor, perangkat_daerah) maps to its own directory under `/app`, making project structure intuitive and easy to extend
+- **Scalability & Performance**
+  - Stateless server endpoints: Each API route performs a single, well-defined operation
+  - Database connection pooling (managed by Drizzle/Next.js) for efficient query handling under load
+  - Clean layering allows horizontal scaling of frontend servers (e.g., on Vercel) and vertical scaling of the database
 
 ## 2. Database Management
 
-- **Database Choice**
-  - We recommend **PostgreSQL** for structured data and reliable transactions.  
-  - In-memory caching can be added later with **Redis** for session tokens or frequently read data.
-
-- **Data Storage and Access**
-  - Use an ORM like **Prisma** or **TypeORM** to map JavaScript/TypeScript objects to database tables.
-  - Connection pooling ensures efficient use of database connections under load.
-  - Migrations track schema changes over time, keeping development, staging, and production in sync.
-
-- **Data Practices**
-  - Passwords are never stored in plain text—they are salted and hashed with **bcrypt** before saving.
-  - All outgoing data is typed and validated to prevent malformed records.
+- **Database Technology**
+  - PostgreSQL as the primary relational store
+  - Drizzle ORM for type-safe schema definitions and migrations
+- **Data Structure & Access**
+  - Schemas defined under `/db/schema` mirror the SQL DDL for entities: perangkat_daerah, aplikasi, vendor, pic, bahasa_pemrograman, framework
+  - CRUD operations and complex queries (counts, groupings) executed via Drizzle’s fluent API in `/lib` or via Server Actions in Next.js
+- **Practices**
+  - Versioned migrations to keep database in sync across environments (development, staging, production)
+  - Connection credentials and secrets managed through environment variables
+  - Backups scheduled daily via managed PostgreSQL provider
 
 ## 3. Database Schema
 
-### Human-Readable Format
+### Human-Readable Overview
 
-- **Users**
-  - **id**: Unique identifier  
-  - **email**: User’s email address (unique)  
-  - **password_hash**: Securely hashed password  
-  - **created_at**: Account creation timestamp
+- **perangkat_daerah** (Agencies)
+  - id (primary key), name, created_at, updated_at
+- **vendor**
+  - id, name, contact_info, created_at, updated_at
+- **pic** (Point of Contact)
+  - id, name, email, phone, created_at, updated_at
+- **bahasa_pemrograman** (Programming Languages)
+  - id, name, created_at, updated_at
+- **framework**
+  - id, name, created_at, updated_at
+- **aplikasi** (Applications)
+  - id, name, description, status (active/inactive), id_perangkat_daerah (FK), id_vendor (FK), id_pic (FK), created_at, updated_at
+- **junction tables** for many-to-many between aplikasi and bahasa_pemrograman, aplikasi and framework
 
-- **Sessions**
-  - **id**: Unique session record  
-  - **user_id**: Links to a user  
-  - **token**: Random string for authentication  
-  - **expires_at**: When the token stops working  
-  - **created_at**: When the session was created
+### SQL Definition (PostgreSQL)
 
-- **DashboardItems** *(optional for dynamic data)*
-  - **id**: Unique record  
-  - **title**: Item title  
-  - **content**: Item details  
-  - **created_at**: When the item was added
-
-### SQL Schema (PostgreSQL)
 ```sql
--- Users table
-CREATE TABLE users (
+CREATE TABLE perangkat_daerah (
   id SERIAL PRIMARY KEY,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
+  name VARCHAR(255) NOT NULL UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Sessions table
-CREATE TABLE sessions (
+CREATE TABLE vendor (
   id SERIAL PRIMARY KEY,
-  user_id INT REFERENCES users(id) ON DELETE CASCADE,
-  token VARCHAR(255) UNIQUE NOT NULL,
-  expires_at TIMESTAMPTZ NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT now()
+  name VARCHAR(255) NOT NULL UNIQUE,
+  contact_info TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Dashboard items table
-CREATE TABLE dashboard_items (
+CREATE TABLE pic (
   id SERIAL PRIMARY KEY,
-  title TEXT NOT NULL,
-  content TEXT,
-  created_at TIMESTAMPTZ DEFAULT now()
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  phone VARCHAR(50),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE bahasa_pemrograman (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE framework (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) NOT NULL UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE aplikasi (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL UNIQUE,
+  description TEXT,
+  status VARCHAR(20) NOT NULL,
+  id_perangkat_daerah INTEGER NOT NULL REFERENCES perangkat_daerah(id),
+  id_vendor INTEGER NOT NULL REFERENCES vendor(id),
+  id_pic INTEGER NOT NULL REFERENCES pic(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE TABLE aplikasi_bahasa (
+  aplikasi_id INTEGER REFERENCES aplikasi(id) ON DELETE CASCADE,
+  bahasa_id INTEGER REFERENCES bahasa_pemrograman(id) ON DELETE CASCADE,
+  PRIMARY KEY (aplikasi_id, bahasa_id)
+);
+
+CREATE TABLE aplikasi_framework (
+  aplikasi_id INTEGER REFERENCES aplikasi(id) ON DELETE CASCADE,
+  framework_id INTEGER REFERENCES framework(id) ON DELETE CASCADE,
+  PRIMARY KEY (aplikasi_id, framework_id)
 );
 ```  
 
 ## 4. API Design and Endpoints
 
-- **Approach**: We follow a **RESTful** style, grouping related endpoints under `/api` directories.
+The backend exposes a standard RESTful API under `/app/api` to support both the internal dashboard and external integrations.
 
-- **Key Endpoints**
-  - `POST /api/auth/register`  
-    • Accepts `{ email, password }`  
-    • Creates a new user and issues a session token  
-  - `POST /api/auth/login`  
-    • Accepts `{ email, password }`  
-    • Verifies credentials and returns a session token  
-  - `POST /api/auth/logout`  
-    • Invalidates the session token on the server  
-  - `GET /api/dashboard/data`  
-    • Requires a valid session  
-    • Returns user-specific data or dashboard items  
+- **Authentication** (via Better Auth)
+  - `POST /app/api/auth/signup` — Register a new user
+  - `POST /app/api/auth/signin` — Log in and receive session token
+  - Protected routes enforce a valid session or token
 
-- **Communication**
-  - Frontend sends JSON requests; backend replies with JSON and appropriate HTTP status codes.  
-  - Protected routes check for a valid session token (in cookies or Authorization header).
+- **Aplikasi Endpoints**
+  - `GET /app/api/aplikasi` — List all applications (supports query params: status, page, perPage)
+  - `POST /app/api/aplikasi` — Create a new application record
+  - `GET /app/api/aplikasi/{id}` — Retrieve details for a single application
+  - `PUT /app/api/aplikasi/{id}` — Update an existing application
+  - `DELETE /app/api/aplikasi/{id}` — Remove an application
+
+- **Supporting Entity Endpoints**
+  - `GET /app/api/perangkat-daerah`, `POST /app/api/perangkat-daerah` (and similar for vendor, pic, bahasa, framework)
+  - Allow listing, creation, updating, and deletion of lookup tables
+
+- **Summary Statistics**
+  - `GET /app/api/dashboard/summary` — Returns total apps, active/inactive counts, agencies count
+
+All endpoints return JSON with a consistent envelope, e.g. `{ success: true, data: ..., error: null }`.
 
 ## 5. Hosting Solutions
 
-- **Cloud Provider**:  
-  - **Vercel** (recommended) offers seamless Next.js deployments, auto-scaling, and built-in CDN.  
-  - Alternatively, **Netlify** or any Node.js-capable host will work.
-
-- **Benefits**
-  - **Reliability**: Global servers and failover across regions.  
-  - **Scalability**: Auto-scale serverless functions based on traffic.  
-  - **Cost-Effectiveness**: Pay-per-use model means low cost for small projects.
+- **Frontend & API Hosting**
+  - Vercel for Next.js apps: automatic deployments, built-in CDN, global edge network
+  - Benefits: zero-config scaling, automatic SSL, preview deployments on every pull request
+- **Database Hosting**
+  - Managed PostgreSQL (AWS RDS, Supabase, or DigitalOcean Managed Databases)
+  - Automated backups, point-in-time recovery, high availability across AZs
+- **Environment Management**
+  - Separate environments (development, staging, production) with isolated databases and credentials
+  - Environment variables stored securely in Vercel and database provider dashboards
 
 ## 6. Infrastructure Components
 
-- **Load Balancer**
-  - Provided by the hosting platform—distributes API requests across function instances.
-
-- **CDN (Content Delivery Network)**
-  - Vercel’s global edge network caches static assets (CSS, JS, images) for faster page loads.
-
-- **Caching**
-  - **Redis** (optional) for session storage or caching dashboard queries to reduce database load.
-
-- **Object Storage**
-  - For file uploads or backups, integrate with AWS S3 or similar services.
-
-- **Message Queue**
-  - In future, use **RabbitMQ** or **Kafka** for background tasks (e.g., email notifications).
+- **Load Balancer & CDN**
+  - Vercel’s edge network acts as a global CDN and load balancer for both static and dynamic content
+- **Caching Mechanisms**
+  - HTTP caching headers configured on API responses for low-change endpoints (e.g., list of frameworks)
+  - Optional: Redis for server-side caching of expensive Dashboard summary queries
+- **Content Delivery**
+  - Static assets (images, fonts) served via CDN for minimal latency
+- **Health Checks & Auto-Scaling**
+  - Vercel auto-scales serverless functions based on traffic
+  - Database provider pings /metrics endpoint for availability
 
 ## 7. Security Measures
 
 - **Authentication & Authorization**
-  - Passwords hashed with **bcrypt** and salted.  
-  - Session tokens stored in secure, HttpOnly cookies or Authorization headers.  
-  - Protected endpoints verify tokens before proceeding.
-
+  - Better Auth manages secure sign-up, sign-in, session handling
+  - Future expansion: role-based access control (Admin, Editor, Viewer) via middleware
 - **Data Encryption**
-  - **HTTPS/TLS** encrypts data in transit.  
-  - Database connections use SSL to encrypt data between the app and the database.
-
-- **Input Validation**
-  - Every incoming request is validated (e.g., valid email format, password length) to prevent SQL injection or other attacks.
-
-- **Web Security Best Practices**
-  - Enable **CORS** policies to limit allowed origins.  
-  - Use **CSRF tokens** or same-site cookies to prevent cross-site requests.  
-  - Set secure headers with **Helmet** or a similar middleware.
+  - HTTPS enforced end-to-end (TLS for all requests)
+  - Data at rest encrypted automatically by managed PostgreSQL
+- **Input Validation & Sanitization**
+  - Server-side validation in API routes (using TypeScript guards or a validation library)
+- **Secrets Management**
+  - Database URLs, API keys, and auth secrets stored as environment variables; not in source control
+- **Vulnerability Protection**
+  - Regular dependency audits (npm audit) and automated security alerts via GitHub
 
 ## 8. Monitoring and Maintenance
 
-- **Performance Monitoring**
-  - Integrate **Sentry** or **LogRocket** for real-time crash reporting and performance tracing.  
-  - Use Vercel’s built-in analytics to track request latencies and error rates.
-
-- **Logging**
-  - Structured logs (JSON) for all API requests and errors, shipped to a log management service like **Datadog** or **Logflare**.
-
-- **Health Checks**
-  - Define a `/health` endpoint that returns a 200 status if the service is up and the database is reachable.
-
+- **Error Tracking & Performance**
+  - Sentry or LogRocket for capturing runtime errors and performance metrics of serverless functions
+  - Vercel Analytics for traffic patterns, latency, and error rates
+- **Database Monitoring**
+  - Provider-side dashboards (RDS CloudWatch, Supabase console) for slow queries, connection counts, CPU/RAM usage
 - **Maintenance Strategies**
-  - Automated migrations run on deploy to keep the database schema up to date.  
-  - Scheduled dependency audits and security scans (e.g., `npm audit`).
-  - Regular backups of the database (daily or weekly depending on usage).
+  - Scheduled database migrations via Drizzle CLI on staging then production
+  - Daily automated backups and audit logs retention
+  - Documentation of runbooks for incident response
 
 ## 9. Conclusion and Overall Backend Summary
 
-The backend for **codeguide-starter** is built on Next.js API Routes and Node.js, paired with PostgreSQL for data and optional Redis for caching. It follows a clear layered architecture that keeps code easy to maintain and extend. With RESTful endpoints for authentication and data, secure practices like password hashing and HTTPS, and hosting on Vercel for scalability and global performance, this setup meets the project’s goals for a fast, secure, and developer-friendly foundation. Future enhancements—such as background job queues, advanced monitoring, or richer data models—can be added without disrupting the core structure.
+The ngawi-apps-dashboard backend is built on a modern, scalable stack that aligns perfectly with the needs of the Ngawi Government Application Management System. Key points:
+
+- A clear separation between UI, API logic, and database schema ensures maintainability
+- TypeScript and Drizzle ORM guarantee type safety from database to frontend
+- Next.js on Vercel plus a managed PostgreSQL delivers reliability, global performance, and cost-effective scaling
+- Well-defined RESTful APIs cover both internal dashboard features and external integrations
+- Security and monitoring practices protect user data and maintain high availability
+
+Together, these components form a robust foundation that can grow with new features—such as advanced role-based access, server-side caching, and extended analytics—while providing a smooth developer and user experience.

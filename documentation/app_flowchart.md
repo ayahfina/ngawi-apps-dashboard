@@ -1,14 +1,15 @@
 flowchart TD
-  Start[Landing Page]
-  SignUpPage[Sign Up Page]
-  SignInPage[Sign In Page]
-  AuthAPI[Authentication API Endpoint]
-  DashboardPage[Dashboard Page]
-  Start -->|Select Sign Up| SignUpPage
-  Start -->|Select Sign In| SignInPage
-  SignUpPage -->|Submit Credentials| AuthAPI
-  SignInPage -->|Submit Credentials| AuthAPI
-  AuthAPI -->|Success| DashboardPage
-  AuthAPI -->|Error| SignUpPage
-  AuthAPI -->|Error| SignInPage
-  DashboardPage -->|Click Logout| Start
+    A[User Start] --> B[Login Page]
+    B --> C{Authenticated?}
+    C -->|Yes| D[Dashboard]
+    C -->|No| B[Login Page]
+    D --> E[Aplikasi List]
+    E --> F[Create New Aplikasi]
+    E --> G[View Aplikasi Detail]
+    F --> H[New Aplikasi Submission]
+    G --> I[Edit Aplikasi Form]
+    I --> J[Aplikasi Update Submission]
+    H --> E[Aplikasi List]
+    J --> E[Aplikasi List]
+    D --> K[Logout]
+    K --> B[Login Page]

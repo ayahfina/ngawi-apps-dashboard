@@ -19,6 +19,11 @@ import {
   IconSearch,
   IconSettings,
   IconUsers,
+  IconBuildingCommunity,
+  IconDeviceDesktop,
+  IconCode,
+  IconUser,
+  IconBuildingStore,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -39,28 +44,40 @@ const staticData = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/dashboard",
       icon: IconDashboard,
     },
     {
-      title: "Lifecycle",
-      url: "#",
-      icon: IconListDetails,
+      title: "Aplikasi",
+      url: "/dashboard/aplikasi",
+      icon: IconDeviceDesktop,
     },
     {
-      title: "Analytics",
-      url: "#",
-      icon: IconChartBar,
+      title: "Perangkat Daerah",
+      url: "/dashboard/perangkat-daerah",
+      icon: IconBuildingCommunity,
     },
     {
-      title: "Projects",
-      url: "#",
-      icon: IconFolder,
+      title: "PIC",
+      url: "/dashboard/pic",
+      icon: IconUser,
     },
     {
-      title: "Team",
-      url: "#",
-      icon: IconUsers,
+      title: "Vendor",
+      url: "/dashboard/vendor",
+      icon: IconBuildingStore,
+    },
+  ],
+  navTech: [
+    {
+      title: "Bahasa Pemrograman",
+      url: "/dashboard/bahasa-pemrograman",
+      icon: IconCode,
+    },
+    {
+      title: "Framework",
+      url: "/dashboard/framework",
+      icon: IconDatabase,
     },
   ],
   navClouds: [
@@ -179,7 +196,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={staticData.navMain} />
-        <NavDocuments items={staticData.documents} />
+        <NavDocuments items={staticData.navTech} />
         <NavSecondary items={staticData.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
